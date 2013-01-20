@@ -3,6 +3,7 @@ package flipcoin
 import (
 	"fmt"
 	"github.com/hoisie/mustache"
+	"github.com/speps/go-hashids"
 	_ "github.com/bmizerany/pq"
 	"database/sql"
 	"io/ioutil"
@@ -329,11 +330,10 @@ func storeParticipants(emails []string, context appengine.Context) ([]*datastore
 	return participants, nil
 }
 
-/*fmt.Println(r.Form)*/
-/*for k, v := range r.Form {*/
-/*fmt.Println(k)*/
-/*fmt.Printf("%T\n",v)*/
-/*for _, sv := range v {*/
-/*fmt.Println(sv)*/
-/*}*/
-/*}*/
+func DecodeKey() {}
+
+func EncodeKey() {
+	h := hashids.New()
+	h.Salt = "dit is zout, heel zout" //TODO: put this in a conf file
+
+}
