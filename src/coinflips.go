@@ -1,12 +1,10 @@
 package flipcoin
 
 import (
-	"appengine"
-	"appengine/datastore"
-	"appengine/mail"
-	"appengine/urlfetch"
 	"fmt"
-	mustache "github.com/hoisie/mustache"
+	"github.com/hoisie/mustache"
+	_ "github.com/bmizerany/pq"
+	"database/sql"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -15,17 +13,30 @@ import (
 
 const (
 	senderEmail = "Coinflips.net <harmaarts@gmail.com>"
+	databaseName = "coinflips"
+	databaseUser = "postgres"
+	databasePass = nil
 )
 
 type Coinflip struct {
-	Head   string
-	Tail   string
-	Result string
+	Head	string
+	Tail	string
+	Result	string
+	Id		int
 }
 
 type Participant struct {
-	Email string
-	Seen  time.Time
+	Email		string
+	Seen		time.Time
+	CoinflipId	int
+}
+
+func OpenDatabase() *sql.DB {
+    db, err := sql.Open("postgres", fmt.Sprintf("user=%s dbname=%s sslmode=disable", databaseUser, databaseName))
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
 
 func init() {
@@ -53,12 +64,9 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/* the real root */
-	c := appengine.NewContext(r)
-	count, err := datastore.NewQuery("Coinflip").Count(c)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	db := OpenDatabase()
+	defer db.Close()
+	count := db.QueryRow("SELECT COUNT(*) FROM participants")
 
 	/*long, very long line */
 	fmt.Fprint(w, mustache.RenderFile("./flipco.in/views/layout.html", map[string]string{"body": mustache.RenderFile("./flipco.in/views/home.html", map[string]string{"title": "Awesome coin tosses - Coinflips.net", "nr_of_flips": fmt.Sprint(count)})}))
@@ -71,7 +79,6 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	context := appengine.NewContext(r)
 	coinflipKey, _ := datastore.DecodeKey(strings.Split(r.URL.Path, "/")[2])
 	coinflip, _ := find(coinflipKey, context)
 
@@ -190,10 +197,15 @@ func uniq(friends []string) (uniq_friends []string) {
 	return uniq_friends
 }
 
-func find(key *datastore.Key, context appengine.Context) (*Coinflip, error) {
+func find(key string) (*Coinflip, error) {
+	db := OpenDatabase()
+	defer db.Close()
+
+	row := db.QueryRow("SELECT id, head, tail, result FROM coinflips WHERE id = ?", key)
+	
 	coinflip := new(Coinflip)
-	if err := datastore.Get(context, key, coinflip); err != nil {
-		return nil, err
+	if err := row.Scan(&coinflip.Id, &coinflip.Head, &coinflip.Tail, &coinflip.Result); err != nil {
+	  return nil, err
 	}
 	return coinflip, nil
 }
