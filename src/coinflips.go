@@ -16,7 +16,6 @@ const (
 	senderEmail = "Coinflips.net <harmaarts@gmail.com>"
 	databaseName = "coinflips"
 	databaseUser = "postgres"
-	databasePass = nil
 )
 
 type Coinflip struct {
