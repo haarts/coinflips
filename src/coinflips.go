@@ -1,4 +1,4 @@
-package flipcoin
+package main
 
 import (
 	"fmt"
