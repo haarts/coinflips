@@ -197,6 +197,7 @@ func uniq(friends []string) (uniq_friends []string) {
 	return uniq_friends
 }
 
+// TODO: move, then delete
 func find(key string) (*Coinflip, error) {
 	db := OpenDatabase()
 	defer db.Close()
@@ -315,6 +316,7 @@ Thanks for using Coinflips.net!
 
 `
 
+// TODO: move, then delete
 /*surely passing around Context all the time is ugly as hell*/
 func storeParticipants(emails []string, context appengine.Context) ([]*datastore.Key, error) {
 	participants := make([]*datastore.Key, len(emails))
@@ -329,10 +331,16 @@ func storeParticipants(emails []string, context appengine.Context) ([]*datastore
 	return participants, nil
 }
 
-func DecodeKey() {}
-
-func EncodeKey() {
+// TODO: move, then delete
+func decodeKey(key string) int {
 	h := hashids.New()
 	h.Salt = "dit is zout, heel zout" //TODO: put this in a conf file
+	return h.Decode(key)
+}
 
+// TODO: move, then delete
+func encodeKey(key int) string  {
+	h := hashids.New()
+	h.Salt = "dit is zout, heel zout" //TODO: put this in a conf file
+	return h.Encode([]int{key})
 }
