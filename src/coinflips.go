@@ -79,8 +79,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	coinflipKey, _ := datastore.DecodeKey(strings.Split(r.URL.Path, "/")[2])
-	coinflip, _ := find(coinflipKey, context)
+	coinflipKey, _ := decodeKey(strings.Split(r.URL.Path, "/")[2])
+	coinflip, _ := find(coinflipKey)
 
 	if coinflip.Result != "" {
 		http.Redirect(w, r, "/show/"+coinflipKey.Encode(), 302)
