@@ -176,5 +176,5 @@ func participantsMap(participants []database.Participant, f func(database.Partic
 
 func newDecoratedCoinflip(coinflipKey string) (*DecoratedCoinflip) {
 	coin, _ := database.FindCoinflip(coinflipKey)
-	return DecoratedCoinflip(coin)
+	return &DecoratedCoinflip{Coinflip: *coin}
 }
