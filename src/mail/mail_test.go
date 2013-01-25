@@ -1,0 +1,6 @@
+package mail
+
+import (
+	"testing"
+)
+
