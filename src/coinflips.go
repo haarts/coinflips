@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"github.com/hoisie/mustache"
 	"strings"
-	"time"
-	"coinflips/database"
+	"./coinflips/database"
 )
 
-type DecoratedCoinflip database.Coinflip
+type DecoratedCoinflip struct {
+	database.Coinflip
+}
 
 const (
 	senderEmail = "Coinflips.net <harm@mindshards.com>"
@@ -53,11 +54,11 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	coinflipKey, _ := strings.Split(r.URL.Path, "/")[2]
-	coinflip, _ := newDecoratedCoinflip(database.FindCoinflip(coinflipKey))
+	coinflipKey := strings.Split(r.URL.Path, "/")[2]
+	coinflip := newDecoratedCoinflip(coinflipKey)
 
-	if coinflip.Result != "" {
-		http.Redirect(w, r, "/show/" + coinflipKey.EncodeKey(), 302)
+	if coinflip.Result.String != "" {
+		http.Redirect(w, r, "/show/" + coinflip.EncodedKey(), 302)
 		return
 	}
 
@@ -74,7 +75,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if count == 0 {
-		result := coinflip.mailResultToParticipants(coinflipKey)
+		result := coinflip.MailResultToParticipants()
 		coinflip.Result = result
 		coinflip.Update()
 	}
@@ -105,29 +106,29 @@ func create(w http.ResponseWriter, r *http.Request) {
 		Tail: tail,
 	}
 
-	coinflipKey, err := database.CreateCoinflip(&coin)
+	_, err := coin.Create()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	for i := range uniq_friends {
-		participant := Participant{Email: uniq_friends[i]}
+		participant := database.Participant{Email: uniq_friends[i]}
 		coin.CreateParticipant(&participant)
 	}
 
-	coin.mailCreationToParticipants(coinflipKey)
+	coin.mailCreationToParticipants()
 
-	http.Redirect(w, r, "/show/" + coinflip.EncodedKey(), 302)
+	http.Redirect(w, r, "/show/" + coin.EncodedKey(), 302)
 }
 
 func show(w http.ResponseWriter, r *http.Request) {
-	coinflipKey, _ := strings.Split(r.URL.Path, "/")[2]
-	coinflip, _ := database.FindCoinFlip(coinflipKey)
+	coinflipKey := strings.Split(r.URL.Path, "/")[2]
+	coinflip, _ := database.FindCoinflip(coinflipKey)
 
-	iterator := database.FindParticipants(coinflip)
+	participants := coinflip.FindParticipants()
 
-	email_list := participantsMap(iterator, func(p Participant) map[string]string {
+	email_list := participantsMap(participants, func(p database.Participant) map[string]string {
 		var seen_at string
 		if p.Seen.Time.IsZero() {
 			seen_at = "hasn't registered yet"
@@ -138,10 +139,10 @@ func show(w http.ResponseWriter, r *http.Request) {
 	})
 
 	var result string
-	if coinflip.Result == "" {
+	if coinflip.Result.String == "" {
 		result = "Nothing yet! Not everybody checked in. Perhaps a little encouragement?"
 	} else {
-		result = coinflip.Result
+		result = coinflip.Result.String
 	}
 
 	str_to_str := map[string]string{"count": fmt.Sprint(len(email_list)), "head": coinflip.Head, "tail": coinflip.Tail, "result": result}
@@ -166,20 +167,14 @@ func uniq(friends []string) (uniq_friends []string) {
 	return uniq_friends
 }
 
-func participantsMap(iterator *datastore.Iterator, f func(Participant) map[string]string) (mapped []map[string]string) {
-	var participant Participant
-	for _, err := iterator.Next(&participant); ; _, err = iterator.Next(&participant) {
-		if err == datastore.Done {
-			break
-		}
-		if err != nil {
-			break
-		}
+func participantsMap(participants []database.Participant, f func(database.Participant) map[string]string) (mapped []map[string]string) {
+	for _, participant := range participants{
 		mapped = append(mapped, f(participant))
 	}
 	return mapped
 }
 
-func newDecoratedCoinflip(coinflip *database.Coinflip) DecoratedCoinflip {
-	return DecoratedCoinflip(coinflip)
+func newDecoratedCoinflip(coinflipKey string) (*DecoratedCoinflip) {
+	coin, _ := database.FindCoinflip(coinflipKey)
+	return DecoratedCoinflip(coin)
 }
