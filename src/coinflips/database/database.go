@@ -132,6 +132,14 @@ func (coinflip *Coinflip) Create() error {
 	return nil
 }
 
+func (coinflip *Coinflip) Update() error {
+	db, _ := OpenDatabase()
+	defer db.Close()
+	
+	_, err := db.Exec("UPDATE coinflips SET head = $1, tail = $2, result = $3 WHERE id = $4", coinflip.Head, coinflip.Tail, coinflip.Result, coinflip.Id)
+	return err
+}
+
 func FindCoinflip(key string) (*Coinflip, error) {
 	keyId := decodeKey(key)
 	db, _ := OpenDatabase()

@@ -144,6 +144,24 @@ func TestCreateCoinflip(t *testing.T) {
 	}
 }
 
+func TestUpdateCoinflip(t *testing.T) {
+	db, _ := OpenDatabase()
+	defer cleanAndCloseDatabase(db)
+
+	coinflip := Coinflip{ Head: "head", Tail: "tail" }
+	coinflip.Create()
+
+	var storedCoinflip *Coinflip
+	storedCoinflip, _ = FindCoinflip(coinflip.EncodedKey())
+	storedCoinflip.Head = "aap noot mies"
+	storedCoinflip.Update()
+
+	storedCoinflip, _ = FindCoinflip(coinflip.EncodedKey())
+	if storedCoinflip.Head != "aap noot mies" {
+		t.Fatal("Expected 'head' to be updated")
+	}
+}
+
 func TestCreateParticipant(t *testing.T) {
 	db, _ := OpenDatabase()
 	defer cleanAndCloseDatabase(db)
