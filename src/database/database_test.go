@@ -21,3 +21,9 @@ func TestFailedOpenDatabase(t *testing.T) {
 	}
 	defer db.Close()
 }
+
+func TestUnmarchalParticipant(t *testing.T) {
+	db, _ := OpenDatabase()
+	defer db.Close()
+	db.Exec("INSERT ....")
+}
