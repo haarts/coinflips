@@ -73,6 +73,15 @@ func (coinflip *Coinflip) CreateParticipant(participant *Participant) error {
 }
 
 func (coinflip *Coinflip) Create() error {
+	db, _ := OpenDatabase()
+	defer db.Close()
+
+	var id int
+	err := db.QueryRow("INSERT INTO coinflips (head, tail) VALUES($1, $2) RETURNING id", coinflip.Head, coinflip.Tail).Scan(&id)
+	if err != nil {
+		return err
+	}
+	coinflip.Id = id
 	return nil
 }
 
