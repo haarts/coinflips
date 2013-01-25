@@ -11,7 +11,7 @@ import (
 // TODO: move to settings file
 var (
 	databaseName = "coinflips"
-	databaseUser = "postgres"
+	databaseUser = "harm"
 )
 
 /*type Coinflip struct {*/
