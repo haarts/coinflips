@@ -54,7 +54,15 @@ func (coinflip *Coinflip) EncodedKey() string {
 }
 
 func (coinflip *Coinflip) FindParticipantByEmail(email string) (Participant, error) {
-	return Participant{}, nil
+	db, _ := OpenDatabase()
+	defer db.Close()
+
+	var participant Participant
+	err := db.QueryRow("SELECT id, email, seen, coinflip_id FROM participants WHERE email = $1 AND coinflip_id = $2", email, coinflip.Id).Scan(&participant.Id, &participant.Email, &participant.Seen, &participant.CoinflipId)
+	if err != nil {
+		return Participant{}, err
+	}
+	return participant, nil
 }
 
 func (coinflip *Coinflip) NumberOfUnregisteredParticipants() (int, error) {

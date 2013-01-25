@@ -33,6 +33,22 @@ func TestUnmarchalParticipant(t *testing.T) {
 	}
 }
 
+func TestFindParticipantByEmail(t *testing.T) {
+	db, _ := OpenDatabase()
+	defer cleanAndCloseDatabase(db)
+
+	coinflip := Coinflip{ Head: "head", Tail: "tail" }
+	coinflip.Create()
+
+	email := "harm@awesome.com"
+	participant := Participant{ Email: email }
+	coinflip.CreateParticipant(&participant)
+
+	if _, err := coinflip.FindParticipantByEmail(email); err != nil {
+		t.Fatal("Expected to find participant with email ", email, err)
+	}
+}
+
 func TestNumberOfUnregisteredParticipants(t *testing.T) {
 	db, _ := OpenDatabase()
 	defer cleanAndCloseDatabase(db)
@@ -54,7 +70,6 @@ func TestNumberOfUnregisteredParticipants(t *testing.T) {
 	if nr, _ := target.NumberOfUnregisteredParticipants(); nr != 2 {
 		t.Fatal("Expected to have 2 unregistered participants got:", nr)
 	}
-
 }
 
 func TestFindParticipants(t * testing.T) {
