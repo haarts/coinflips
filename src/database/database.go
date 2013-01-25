@@ -25,6 +25,7 @@ type Participant struct {
 	Email		string
 	Seen		time.Time
 	CoinflipId	int
+	Id			int
 }
 
 func OpenDatabase() (*sql.DB, error) {
@@ -69,6 +70,16 @@ func (participant *Participant) Update() error {
 }
 
 func (coinflip *Coinflip) CreateParticipant(participant *Participant) error {
+	db, _ := OpenDatabase()
+	defer db.Close()
+
+	var id int
+	err := db.QueryRow("INSERT INTO participants (email, coinflip_id) VALUES($1, $2) RETURNING id", participant.Email, coinflip.Id).Scan(&id)
+	if err != nil {
+		return err
+	}
+	participant.CoinflipId = coinflip.Id
+	participant.Id = id
 	return nil
 }
 

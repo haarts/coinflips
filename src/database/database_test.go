@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 	"database/sql"
-	"fmt"
 )
 
 func TestKeyEncoding(t *testing.T) {
@@ -35,18 +34,35 @@ func TestUnmarchalParticipant(t *testing.T) {
 }
 
 func TestCreateCoinflip(t *testing.T) {
-	coinflip := Coinflip{ Head: "head", Tail: "tail" }
-	coinflip.Create()
-	
 	db, _ := OpenDatabase()
 	defer cleanAndCloseDatabase(db)
 
+	coinflip := Coinflip{ Head: "head", Tail: "tail" }
+	coinflip.Create()
+	
 	row := db.QueryRow("SELECT id, head, tail FROM coinflips WHERE id = $1", coinflip.Id)
 	var storedCoinflip Coinflip
 	row.Scan(&storedCoinflip.Id, &storedCoinflip.Head, &storedCoinflip.Tail)
 
 	if storedCoinflip != coinflip {
 		t.Fatalf("Expected %v to be equal to %v", coinflip, storedCoinflip)
+	}
+}
+
+func TestCreateParticipant(t *testing.T) {
+	db, _ := OpenDatabase()
+	defer cleanAndCloseDatabase(db)
+
+	coinflip := Coinflip{ Head: "head", Tail: "tail" }
+	coinflip.Create()
+
+	participant := Participant{ Email: "harm" }
+	coinflip.CreateParticipant(&participant)
+
+	var storedParticipant Participant
+	db.QueryRow("SELECT id, email, coinflip_id FROM participants WHERE coinflip_id = $1", coinflip.Id).Scan(&storedParticipant.Id, &storedParticipant.Email, &storedParticipant.CoinflipId)
+	if participant.Id == 0 || storedParticipant != participant {
+		t.Fatalf("Expected %v to equal %v", storedParticipant, participant)
 	}
 }
 
