@@ -66,6 +66,20 @@ func TestCreateParticipant(t *testing.T) {
 	}
 }
 
+func TestFindCoinflip(t *testing.T) {
+	db, _ := OpenDatabase()
+	defer cleanAndCloseDatabase(db)
+
+	coinflip := Coinflip{ Head: "head", Tail: "tail" }
+	coinflip.Create()
+
+	key := coinflip.EncodedKey()
+
+	foundCoinflip, _ := FindCoinflip(key)
+	if coinflip.Id != foundCoinflip.Id {
+		t.Fatal("Expect keys to be the same:", coinflip.Id, foundCoinflip.Id)
+	}
+}
 /*func TestFindParticipantByEmail(t *testing.T) {*/
 	/*db, _ := OpenDatabase()*/
 	/*defer cleanAndCloseDatabase(db)*/

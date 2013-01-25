@@ -17,7 +17,7 @@ var (
 type Coinflip struct {
 	Head	string
 	Tail	string
-	Result	string
+	Result	sql.NullString
 	Id		int
 }
 
@@ -49,7 +49,7 @@ func encodeKey(key int) string {
 	return h.Encrypt([]int{key})
 }
 
-func (coinflip *Coinflip) EncodeKey() string {
+func (coinflip *Coinflip) EncodedKey() string {
 	return encodeKey(coinflip.Id)
 }
 
