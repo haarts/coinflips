@@ -87,8 +87,14 @@ func (participant *Participant) Update() error {
 	db, _ := OpenDatabase()
 	defer db.Close()
 	
-	_, err := db.Exec("UPDATE participants SET email = $1, seen = $2 WHERE id = $3", participant.Email, participant.Seen, participant.Id)
-	return err
+	if participant.Seen.IsZero() {
+		_, err := db.Exec("UPDATE participants SET email = $1 WHERE id = $3", participant.Email, participant.Id)
+		return err
+	} else {
+		_, err := db.Exec("UPDATE participants SET email = $1, seen = $2 WHERE id = $3", participant.Email, participant.Seen, participant.Id)
+		return err
+	}
+	return nil
 }
 
 func (coinflip *Coinflip) CreateParticipant(participant *Participant) error {
