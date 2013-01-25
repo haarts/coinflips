@@ -14,12 +14,12 @@ var (
 	databaseUser = "harm"
 )
 
-/*type Coinflip struct {*/
-	/*Head	string*/
-	/*Tail	string*/
-	/*Result	string*/
-	/*Id		int*/
-/*}*/
+type Coinflip struct {
+	Head	string
+	Tail	string
+	Result	string
+	Id		int
+}
 
 type Participant struct {
 	Email		string
