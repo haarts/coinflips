@@ -5,6 +5,7 @@ import (
 	_ "github.com/bmizerany/pq"
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 // TODO: move to settings file
@@ -20,11 +21,11 @@ var (
 	/*Id		int*/
 /*}*/
 
-/*Participant struct {*/
-	/*Email		string*/
-	/*Seen		time.Time*/
-	/*CoinflipId	int*/
-/*}*/
+type Participant struct {
+	Email		string
+	Seen		time.Time
+	CoinflipId	int
+}
 
 func OpenDatabase() (*sql.DB, error) {
 	db, err := sql.Open("postgres", fmt.Sprintf("user=%s dbname=%s sslmode=disable", databaseUser, databaseName))
