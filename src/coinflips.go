@@ -66,8 +66,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	participant.Seen = time.Now()
-	participant.Update()
+	participant.Register()
 
 	count, err := coinflip.NumberOfUnregisteredParticipants()
 	if err != nil {
@@ -75,11 +74,11 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if count == 0 {
-		result := coinflip.mailResultToParticipants(context, coinflipKey)
+		result := coinflip.mailResultToParticipants(coinflipKey)
 		coinflip.Result = result
 		coinflip.Update()
 	}
-	http.Redirect(w, r, "/show/" + coinflipKey.Encode(), 302)
+	http.Redirect(w, r, "/show/" + coinflip.EncodedKey(), 302)
 }
 
 func create(w http.ResponseWriter, r *http.Request) {
@@ -114,12 +113,12 @@ func create(w http.ResponseWriter, r *http.Request) {
 
 	for i := range uniq_friends {
 		participant := Participant{Email: uniq_friends[i]}
-		database.CreateParticipant(&participant, &coin)
+		coin.CreateParticipant(&participant)
 	}
 
 	coin.mailCreationToParticipants(coinflipKey)
 
-	http.Redirect(w, r, "/show/" + coinflip.EncodeKey(), 302)
+	http.Redirect(w, r, "/show/" + coinflip.EncodedKey(), 302)
 }
 
 func show(w http.ResponseWriter, r *http.Request) {
@@ -130,10 +129,10 @@ func show(w http.ResponseWriter, r *http.Request) {
 
 	email_list := participantsMap(iterator, func(p Participant) map[string]string {
 		var seen_at string
-		if p.Seen.IsZero() {
+		if p.Seen.Time.IsZero() {
 			seen_at = "hasn't registered yet"
 		} else {
-			seen_at = p.Seen.Format("Monday 2 January 2006")
+			seen_at = p.Seen.Time.Format("Monday 2 January 2006")
 		}
 		return map[string]string{"email": p.Email, "seen_at": seen_at}
 	})
