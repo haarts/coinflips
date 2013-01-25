@@ -34,6 +34,22 @@ func TestUnmarchalParticipant(t *testing.T) {
 	}
 }
 
+func TestRegisterParticipant(t *testing.T) {
+	db, _ := OpenDatabase()
+	defer cleanAndCloseDatabase(db)
+
+	coinflip := Coinflip{ Head: "head", Tail: "tail" }
+	coinflip.Create()
+	participant := Participant{ Email: "register@email.com" }
+	coinflip.CreateParticipant(&participant)
+
+	participant.Register()
+
+	if participant.Seen.Time.IsZero() {
+	  t.Fatal("Expect participant to be registered")
+	}
+}
+
 func TestFindParticipantByEmail(t *testing.T) {
 	db, _ := OpenDatabase()
 	defer cleanAndCloseDatabase(db)

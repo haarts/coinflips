@@ -5,7 +5,7 @@ import (
 	pq "github.com/bmizerany/pq"
 	"database/sql"
 	"fmt"
-	/*"time"*/
+	"time"
 )
 
 // TODO: move to settings file
@@ -89,6 +89,12 @@ func (coinflip *Coinflip) FindParticipants() []Participant {
 		participants = append(participants, participant)
 	}
 	return participants
+}
+
+
+func (participant *Participant) Register() error {
+	participant.Seen = pq.NullTime{Time: time.Now()}
+	return participant.Update()
 }
 
 func (participant *Participant) Update() error {
