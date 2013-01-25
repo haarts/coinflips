@@ -33,6 +33,30 @@ func TestUnmarchalParticipant(t *testing.T) {
 	}
 }
 
+func TestNumberOfUnregisteredParticipants(t *testing.T) {
+	db, _ := OpenDatabase()
+	defer cleanAndCloseDatabase(db)
+
+	coinflip := Coinflip{ Head: "head", Tail: "tail" }
+	coinflip.Create()
+
+	participant := Participant{ Email: "unregisterd harm" }
+	coinflip.CreateParticipant(&participant)
+	participant = Participant{ Email: "other unregisted harm" }
+	coinflip.CreateParticipant(&participant)
+
+	participant = Participant{ Email: "registered harm" }
+	coinflip.CreateParticipant(&participant)
+	participant.Seen = time.Now()
+	participant.Update()
+
+	target, _ := FindCoinflip(coinflip.EncodedKey())
+	if nr, _ := target.NumberOfUnregisteredParticipants(); nr != 2 {
+		t.Fatal("Expected to have 2 unregistered participants got:", nr)
+	}
+
+}
+
 func TestFindParticipants(t * testing.T) {
 	db, _ := OpenDatabase()
 	defer cleanAndCloseDatabase(db)

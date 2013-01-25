@@ -58,7 +58,15 @@ func (coinflip *Coinflip) FindParticipantByEmail(email string) (Participant, err
 }
 
 func (coinflip *Coinflip) NumberOfUnregisteredParticipants() (int, error) {
-	return 0, nil
+	db, _ := OpenDatabase()
+	defer db.Close()
+
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM participants WHERE seen IS NULL AND coinflip_id = $1", coinflip.Id).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (coinflip *Coinflip) FindParticipants() []Participant {
