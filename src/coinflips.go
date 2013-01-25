@@ -106,7 +106,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 		Tail: tail,
 	}
 
-	_, err := coin.Create()
+	err := coin.Create()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
