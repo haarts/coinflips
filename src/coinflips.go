@@ -3,41 +3,17 @@ package main
 import (
 	"fmt"
 	"github.com/hoisie/mustache"
-	"github.com/speps/go-hashids"
-	_ "github.com/bmizerany/pq"
-	"database/sql"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 )
 
+type DecoratedCoinflip database.Coinflip
+
 const (
-	senderEmail = "Coinflips.net <harmaarts@gmail.com>"
-	databaseName = "coinflips"
-	databaseUser = "postgres"
+	senderEmail = "Coinflips.net <harm@mindshards.com>"
 )
-
-type Coinflip struct {
-	Head	string
-	Tail	string
-	Result	string
-	Id		int
-}
-
-type Participant struct {
-	Email		string
-	Seen		time.Time
-	CoinflipId	int
-}
-
-func OpenDatabase() *sql.DB {
-    db, err := sql.Open("postgres", fmt.Sprintf("user=%s dbname=%s sslmode=disable", databaseUser, databaseName))
-	if err != nil {
-		panic(err)
-	}
-	return db
-}
 
 func init() {
 	http.HandleFunc("/", home)
@@ -64,9 +40,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/* the real root */
-	db := OpenDatabase()
-	defer db.Close()
-	count := db.QueryRow("SELECT COUNT(*) FROM participants")
+	count := database.TotalNumberOfParticipants()
 
 	/*long, very long line */
 	fmt.Fprint(w, mustache.RenderFile("./flipco.in/views/layout.html", map[string]string{"body": mustache.RenderFile("./flipco.in/views/home.html", map[string]string{"title": "Awesome coin tosses - Coinflips.net", "nr_of_flips": fmt.Sprint(count)})}))
@@ -79,25 +53,23 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	coinflipKey, _ := decodeKey(strings.Split(r.URL.Path, "/")[2])
-	coinflip, _ := find(coinflipKey)
+	coinflipKey, _ := strings.Split(r.URL.Path, "/")[2]
+	coinflip, _ := newDecoratedCoinflip(database.FindCoinflip(coinflipKey))
 
 	if coinflip.Result != "" {
-		http.Redirect(w, r, "/show/"+coinflipKey.Encode(), 302)
+		http.Redirect(w, r, "/show/" + coinflipKey.EncodeKey(), 302)
 		return
 	}
 
-	iterator := datastore.NewQuery("Participant").Ancestor(coinflipKey).Filter("Email =", r.FormValue("email")).Run(context)
-	var found Participant
-	key, err := iterator.Next(&found)
+	participant, err := coinflip.FindParticipantByEmail(r.FormValue("email"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	found.Seen = time.Now()
-	/*found.Seen = datastore.SecondsToTime(time.Now())*/
-	datastore.Put(context, key, &found)
-	count, err := datastore.NewQuery("Participant").Ancestor(coinflipKey).Filter("Seen =", 0).Count(context)
+	participant.Seen = time.Now()
+	participant.Update()
+
+	count, err := coinflip.NumberOfUnregisteredParticipants()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -105,9 +77,9 @@ func register(w http.ResponseWriter, r *http.Request) {
 	if count == 0 {
 		result := coinflip.mailResultToParticipants(context, coinflipKey)
 		coinflip.Result = result
-		datastore.Put(context, coinflipKey, coinflip)
+		coinflip.Update()
 	}
-	http.Redirect(w, r, "/show/"+coinflipKey.Encode(), 302)
+	http.Redirect(w, r, "/show/" + coinflipKey.Encode(), 302)
 }
 
 func create(w http.ResponseWriter, r *http.Request) {
@@ -116,8 +88,6 @@ func create(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", 302)
 		return
 	}
-
-	c := appengine.NewContext(r)
 
 	r.ParseForm()
 	tail := r.Form["tail"][0]
@@ -131,34 +101,32 @@ func create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	coin := Coinflip{
+	coin := database.Coinflip{
 		Head: head,
 		Tail: tail,
 	}
 
-	coinflipKey, err := datastore.Put(c, datastore.NewIncompleteKey(c, "Coinflip", nil), &coin)
+	coinflipKey, err := database.CreateCoinflip(&coin)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	for i := range uniq_friends {
-		key := datastore.NewIncompleteKey(c, "Participant", coinflipKey)
 		participant := Participant{Email: uniq_friends[i]}
-		datastore.Put(c, key, &participant)
+		database.CreateParticipant(&participant, &coin)
 	}
 
-	coin.mailParticipants(c, coinflipKey)
+	coin.mailCreationToParticipants(coinflipKey)
 
-	http.Redirect(w, r, "/show/"+coinflipKey.Encode(), 302)
+	http.Redirect(w, r, "/show/" + coinflip.EncodeKey(), 302)
 }
 
 func show(w http.ResponseWriter, r *http.Request) {
-	context := appengine.NewContext(r)
-	coinflipKey, _ := datastore.DecodeKey(strings.Split(r.URL.Path, "/")[2])
-	coinflip, _ := find(coinflipKey, context)
+	coinflipKey, _ := strings.Split(r.URL.Path, "/")[2]
+	coinflip, _ := database.FindCoinFlip(coinflipKey)
 
-	iterator := datastore.NewQuery("Participant").Ancestor(coinflipKey).Run(context)
+	iterator := database.FindParticipants(coinflip)
 
 	email_list := participantsMap(iterator, func(p Participant) map[string]string {
 		var seen_at string
@@ -169,12 +137,14 @@ func show(w http.ResponseWriter, r *http.Request) {
 		}
 		return map[string]string{"email": p.Email, "seen_at": seen_at}
 	})
+
 	var result string
 	if coinflip.Result == "" {
 		result = "Nothing yet! Not everybody checked in. Perhaps a little encouragement?"
 	} else {
 		result = coinflip.Result
 	}
+
 	str_to_str := map[string]string{"count": fmt.Sprint(len(email_list)), "head": coinflip.Head, "tail": coinflip.Tail, "result": result}
 	str_to_slice := map[string][]map[string]string{"participants": email_list}
 	fmt.Fprint(w, mustache.RenderFile("./flipco.in/views/layout.html", map[string]string{"body": mustache.RenderFile("./flipco.in/views/show.html", str_to_str, str_to_slice)}))
@@ -197,20 +167,6 @@ func uniq(friends []string) (uniq_friends []string) {
 	return uniq_friends
 }
 
-// TODO: move, then delete
-func find(key string) (*Coinflip, error) {
-	db := OpenDatabase()
-	defer db.Close()
-
-	row := db.QueryRow("SELECT id, head, tail, result FROM coinflips WHERE id = ?", key)
-	
-	coinflip := new(Coinflip)
-	if err := row.Scan(&coinflip.Id, &coinflip.Head, &coinflip.Tail, &coinflip.Result); err != nil {
-	  return nil, err
-	}
-	return coinflip, nil
-}
-
 func participantsMap(iterator *datastore.Iterator, f func(Participant) map[string]string) (mapped []map[string]string) {
 	var participant Participant
 	for _, err := iterator.Next(&participant); ; _, err = iterator.Next(&participant) {
@@ -225,18 +181,16 @@ func participantsMap(iterator *datastore.Iterator, f func(Participant) map[strin
 	return mapped
 }
 
-/* passing the Context, again */
-/* this is a function on a pointer to a Coinflip struct. Yet either Context OR a slice of Participant must be passed as an argument. */
-func (coinflip *Coinflip) mailParticipants(context appengine.Context, coinflipKey *datastore.Key) {
+func newDecoratedCoinflip(coinflip *database.Coinflip) DecoratedCoinflip {
+	return DecoratedCoinflip(coinflip)
+}
+
+// TODO: move to mail package
+func (coinflip *Coinflip) mailCreationToParticipants() {
+	participants := coinflip.FindParticipants()
 	query := datastore.NewQuery("Participant").Ancestor(coinflipKey)
 
-	for t := query.Run(context); ; {
-		var participant Participant
-		_, err := t.Next(&participant)
-		if err == datastore.Done {
-			break
-		}
-
+	for participant := range participants {
 		msg := &mail.Message{
 			Sender:  senderEmail,
 			To:      []string{participant.Email},
@@ -249,6 +203,7 @@ func (coinflip *Coinflip) mailParticipants(context appengine.Context, coinflipKe
 	}
 }
 
+// TODO: move to mail package
 const confirmMessage = `
 Someone created a coin toss with you.
 Please confirm your email address by clicking on the link below:
@@ -256,11 +211,43 @@ Please confirm your email address by clicking on the link below:
 %s
 `
 
-func (coinflip *Coinflip) getResult(context appengine.Context) string {
+// TODO: move to mail package
+func (coinflip *DecoratedCoinflip) mailResultToParticipants() string {
+	result := coinflip.getResult()
+	participants := coinflip.FindParticipants()
+
+	for participant := range participants {
+		msg := &mail.Message{
+			Sender:  senderEmail,
+			To:      []string{participant.Email},
+			Subject: "The results are in!",
+			Body:    fmt.Sprintf(resultMessage, result),
+		}
+		if err := mail.Send(msg); err != nil {
+			context.Errorf("Couldn't send email: %v", err)
+		}
+	}
+	return result
+}
+
+// TODO: move to mail package
+const resultMessage = `
+Brilliant! Everybody checked in.
+The result of your coin flip is:
+
+%s
+
+Remember this results is based on absolute randomness.
+
+Thanks for using Coinflips.net!
+
+`
+
+func (coinflip *DecoratedCoinflip) getResult() result, error {
 	client := urlfetch.Client(context)
 	response, err := client.Get("http://www.random.org/integers/?num=1&min=0&max=1&col=1&base=10&format=plain&rnd=new")
 	if err != nil {
-		context.Errorf("Couldn't fetch Random.org: %v", err)
+		return nil, err
 	} else {
 		defer response.Body.Close()
 		contents, err := ioutil.ReadAll(response.Body)
@@ -277,70 +264,4 @@ func (coinflip *Coinflip) getResult(context appengine.Context) string {
 		}
 	}
 	return "never happens"
-}
-
-func (coinflip *Coinflip) mailResultToParticipants(context appengine.Context, coinflipKey *datastore.Key) string {
-
-	result := coinflip.getResult(context)
-	query := datastore.NewQuery("Participant").Ancestor(coinflipKey)
-
-	for t := query.Run(context); ; {
-		var participant Participant
-		_, err := t.Next(&participant)
-		if err == datastore.Done {
-			break
-		}
-
-		msg := &mail.Message{
-			Sender:  senderEmail,
-			To:      []string{participant.Email},
-			Subject: "The results are in!",
-			Body:    fmt.Sprintf(resultMessage, result),
-		}
-		if err := mail.Send(context, msg); err != nil {
-			context.Errorf("Couldn't send email: %v", err)
-		}
-	}
-	return result
-}
-
-const resultMessage = `
-Brilliant! Everybody checked in.
-The result of your coin flip is:
-
-%s
-
-Remember this results is based on absolute randomness.
-
-Thanks for using Coinflips.net!
-
-`
-
-// TODO: move, then delete
-/*surely passing around Context all the time is ugly as hell*/
-func storeParticipants(emails []string, context appengine.Context) ([]*datastore.Key, error) {
-	participants := make([]*datastore.Key, len(emails))
-	for i := range emails {
-		p := Participant{Email: emails[i]}
-		key, err := datastore.Put(context, datastore.NewIncompleteKey(context, "Participant", nil), &p)
-		if err != nil {
-			return nil, err
-		}
-		participants[i] = key
-	}
-	return participants, nil
-}
-
-// TODO: move, then delete
-func decodeKey(key string) int {
-	h := hashids.New()
-	h.Salt = "dit is zout, heel zout" //TODO: put this in a conf file
-	return h.Decode(key)
-}
-
-// TODO: move, then delete
-func encodeKey(key int) string  {
-	h := hashids.New()
-	h.Salt = "dit is zout, heel zout" //TODO: put this in a conf file
-	return h.Encode([]int{key})
 }
