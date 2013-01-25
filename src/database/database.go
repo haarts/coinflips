@@ -66,7 +66,11 @@ func (coinflip *Coinflip) FindParticipants() []Participant {
 }
 
 func (participant *Participant) Update() error {
-	return nil
+	db, _ := OpenDatabase()
+	defer db.Close()
+	
+	_, err := db.Exec("UPDATE participants SET email = $1, seen = $2 WHERE id = $3", participant.Email, participant.Seen, participant.Id)
+	return err
 }
 
 func (coinflip *Coinflip) CreateParticipant(participant *Participant) error {

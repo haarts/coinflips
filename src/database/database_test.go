@@ -33,6 +33,26 @@ func TestUnmarchalParticipant(t *testing.T) {
 	}
 }
 
+func TestUpdateParticipant(t *testing.T) {
+	db, _ := OpenDatabase()
+	defer cleanAndCloseDatabase(db)
+
+	var id int
+	db.QueryRow("INSERT INTO participants (email, coinflip_id) VALUES('harm', 0) RETURNING id").Scan(&id)
+
+	var participant Participant
+	db.QueryRow("SELECT id, email FROM participants WHERE id = $1", id).Scan(&participant.Id, &participant.Email)
+
+	participant.Seen = time.Now()
+	participant.Update()
+
+	var storedParticipant Participant
+	db.QueryRow("SELECT id, seen FROM participants WHERE id = $1", id).Scan(&storedParticipant.Id, &storedParticipant.Seen)
+	if storedParticipant.Seen.IsZero() {
+		t.Fatal("Expected 'seen' to be updated")
+	}
+}
+
 func TestCreateCoinflip(t *testing.T) {
 	db, _ := OpenDatabase()
 	defer cleanAndCloseDatabase(db)
@@ -80,6 +100,7 @@ func TestFindCoinflip(t *testing.T) {
 		t.Fatal("Expect keys to be the same:", coinflip.Id, foundCoinflip.Id)
 	}
 }
+
 /*func TestFindParticipantByEmail(t *testing.T) {*/
 	/*db, _ := OpenDatabase()*/
 	/*defer cleanAndCloseDatabase(db)*/
