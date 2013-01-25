@@ -14,17 +14,6 @@ func TestKeyEncoding(t *testing.T) {
 	}
 }
 
-/*func TestFailedOpenDatabase(t *testing.T) {*/
-	/*// TODO: How to induce an error???*/
-	/*databaseName = "foo bar"*/
-	/*databaseUser = "thisreallyisfake"*/
-	/*db, err := OpenDatabase()*/
-	/*if err == nil {*/
-		/*t.Error("expected connecting to non existing db to return errors")*/
-	/*}*/
-	/*defer db.Close()*/
-/*}*/
-
 func TestUnmarchalParticipant(t *testing.T) {
 	db, _ := OpenDatabase()
 	defer cleanAndCloseDatabase(db)
@@ -44,6 +33,29 @@ func TestUnmarchalParticipant(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateCoinflip(t *testing.T) {
+	coinflip := Coinflip{ Head: "head", Tail: "tail" }
+	coinflip.Create()
+	
+	db, _ := OpenDatabase()
+	defer db.Close()
+	row := db.QueryRow("SELECT * FROM coinflips WHERE id = $1", coinflip.Id)
+	var storedCoinflip Coinflip
+	row.Scan(&storedCoinflip.Id, &storedCoinflip.Head, &storedCoinflip.Tail)
+	if storedCoinflip != coinflip {
+		t.Fatalf("Expected %v to be equal to %v", coinflip, storedCoinflip)
+	}
+}
+
+/*func TestFindParticipantByEmail(t *testing.T) {*/
+	/*db, _ := OpenDatabase()*/
+	/*defer cleanAndCloseDatabase(db)*/
+
+	/*email := "harm@awesome.com"*/
+	/*_, err := db.Exec("INSERT INTO participants (email) VALUES($1)", email)*/
+	/*_, err := db.Exec("INSERT INTO participants (email) VALUES($1)", "some@other.com")*/
+/*}*/
 
 func cleanAndCloseDatabase(db *sql.DB) {
 	_, err := db.Exec("DELETE FROM participants")
