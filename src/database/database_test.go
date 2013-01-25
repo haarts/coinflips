@@ -33,6 +33,25 @@ func TestUnmarchalParticipant(t *testing.T) {
 	}
 }
 
+func TestFindParticipants(t * testing.T) {
+	db, _ := OpenDatabase()
+	defer cleanAndCloseDatabase(db)
+
+	coinflip := Coinflip{ Head: "head", Tail: "tail" }
+	coinflip.Create()
+
+	participant := Participant{ Email: "harm" }
+	coinflip.CreateParticipant(&participant)
+	participant = Participant{ Email: "other harm" }
+	coinflip.CreateParticipant(&participant)
+
+	target, _ := FindCoinflip(coinflip.EncodedKey())
+
+	if len(target.FindParticipants()) != 2 {
+		t.Fatal("Expected to find 2 Participants")
+	}
+}
+
 func TestUpdateParticipant(t *testing.T) {
 	db, _ := OpenDatabase()
 	defer cleanAndCloseDatabase(db)

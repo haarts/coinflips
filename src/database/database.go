@@ -62,7 +62,17 @@ func (coinflip *Coinflip) NumberOfUnregisteredParticipants() (int, error) {
 }
 
 func (coinflip *Coinflip) FindParticipants() []Participant {
-	return []Participant{Participant{}}
+	db, _ := OpenDatabase()
+	defer db.Close()
+
+	var participants []Participant
+	rows, _ := db.Query("SELECT id, email, seen FROM participants WHERE coinflip_id = $1", coinflip.Id)
+	for rows.Next() {
+		var participant Participant
+		rows.Scan(&participant.Id, &participant.Email, &participant.Seen)
+		participants = append(participants, participant)
+	}
+	return participants
 }
 
 func (participant *Participant) Update() error {
