@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 	"database/sql"
+	pq "github.com/bmizerany/pq"
 )
 
 func TestKeyEncoding(t *testing.T) {
@@ -27,7 +28,7 @@ func TestUnmarchalParticipant(t *testing.T) {
 	for rows.Next() {
 		var participant Participant
 		rows.Scan(&participant.Email, &participant.Seen)
-		if participant.Email != email || participant.Seen != time {
+		if participant.Email != email || participant.Seen.Time != time {
 			t.Fatalf("Unexpected attributes in: %v, expected %v and %v", participant, email, time)
 		}
 	}
@@ -63,7 +64,7 @@ func TestNumberOfUnregisteredParticipants(t *testing.T) {
 
 	participant = Participant{ Email: "registered harm" }
 	coinflip.CreateParticipant(&participant)
-	participant.Seen = time.Now()
+	participant.Seen = pq.NullTime{Time: time.Now()}
 	participant.Update()
 
 	target, _ := FindCoinflip(coinflip.EncodedKey())
@@ -101,12 +102,12 @@ func TestUpdateParticipant(t *testing.T) {
 	var participant Participant
 	db.QueryRow("SELECT id, email FROM participants WHERE id = $1", id).Scan(&participant.Id, &participant.Email)
 
-	participant.Seen = time.Now()
+	participant.Seen = pq.NullTime{Time: time.Now()}
 	participant.Update()
 
 	var storedParticipant Participant
 	db.QueryRow("SELECT id, seen FROM participants WHERE id = $1", id).Scan(&storedParticipant.Id, &storedParticipant.Seen)
-	if storedParticipant.Seen.IsZero() {
+	if storedParticipant.Seen.Time.IsZero() {
 		t.Fatal("Expected 'seen' to be updated")
 	}
 }

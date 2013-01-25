@@ -2,10 +2,10 @@ package database
 
 import (
 	"github.com/speps/go-hashids"
-	_ "github.com/bmizerany/pq"
+	pq "github.com/bmizerany/pq"
 	"database/sql"
 	"fmt"
-	"time"
+	/*"time"*/
 )
 
 // TODO: move to settings file
@@ -21,9 +21,10 @@ type Coinflip struct {
 	Id		int
 }
 
+// FIXME: http://godoc.org/github.com/bmizerany/pq#NullTime
 type Participant struct {
 	Email		string
-	Seen		time.Time
+	Seen		pq.NullTime
 	CoinflipId	int
 	Id			int
 }
@@ -95,14 +96,8 @@ func (participant *Participant) Update() error {
 	db, _ := OpenDatabase()
 	defer db.Close()
 	
-	if participant.Seen.IsZero() {
-		_, err := db.Exec("UPDATE participants SET email = $1 WHERE id = $3", participant.Email, participant.Id)
-		return err
-	} else {
-		_, err := db.Exec("UPDATE participants SET email = $1, seen = $2 WHERE id = $3", participant.Email, participant.Seen, participant.Id)
-		return err
-	}
-	return nil
+	_, err := db.Exec("UPDATE participants SET email = $1, seen = $2 WHERE id = $3", participant.Email, participant.Seen.Time, participant.Id)
+	return err
 }
 
 func (coinflip *Coinflip) CreateParticipant(participant *Participant) error {
