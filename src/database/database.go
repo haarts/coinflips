@@ -21,7 +21,6 @@ type Coinflip struct {
 	Id		int
 }
 
-// FIXME: http://godoc.org/github.com/bmizerany/pq#NullTime
 type Participant struct {
 	Email		string
 	Seen		pq.NullTime
