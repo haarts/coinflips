@@ -5,7 +5,26 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"strings"
+	"fmt"
+	"../database"
+)
+
+type MailingCoinflip struct {
+	database.Coinflip
+}
+
+type Message struct {
+	Sender string
+	To []string
+	Subject string
+	Body string
+}
+
+const (
+	smtpUser = "AKIAJNQ3R2RRD6DC7YBA"
+	smtpPassword = "ApI4BKG6pkRiN+LeB2S8o/mz7cucsAO+QFDffbo3LbpH"
+	smtpServer = "email-smtp.us-east-1.amazonaws.com"
+	senderEmail = "Coinflips.net <harm@mindshards.com>"
 )
 
 const resultMessage = `
@@ -27,46 +46,49 @@ Please confirm your email address by clicking on the link below:
 %s
 `
 
-func (coinflip *DecoratedCoinflip) mailResultToParticipants() string {
-	result := coinflip.getResult()
+func NewMailingCoinflip(coinflipKey string) (*MailingCoinflip) {
+	coin, _ := database.FindCoinflip(coinflipKey)
+	return &MailingCoinflip{Coinflip: *coin}
+}
+
+func (coinflip *MailingCoinflip) MailResultToParticipants() string {
+	result, _ := coinflip.getResult()
 	participants := coinflip.FindParticipants()
 
-	for participant := range participants {
-		msg := &mail.Message{
+	for _, participant := range participants {
+		message := Message{
 			Sender:  senderEmail,
 			To:      []string{participant.Email},
 			Subject: "The results are in!",
 			Body:    fmt.Sprintf(resultMessage, result),
 		}
-		if err := mail.Send(msg); err != nil {
-			context.Errorf("Couldn't send email: %v", err)
+		if err := message.send(); err != nil {
+			fmt.Errorf("Couldn't send email: %v", err)
 		}
 	}
 	return result
 }
 
-func (coinflip *DecoratedCoinflip) mailCreationToParticipants() {
+func (coinflip *MailingCoinflip) MailCreationToParticipants() {
 	participants := coinflip.FindParticipants()
-	query := datastore.NewQuery("Participant").Ancestor(coinflipKey)
 
-	for participant := range participants {
-		msg := &mail.Message{
+	for _, participant := range participants {
+		message := Message{
 			Sender:  senderEmail,
 			To:      []string{participant.Email},
 			Subject: "What will it be? " + coinflip.Head + " or " + coinflip.Tail + "?",
-			Body:    fmt.Sprintf(confirmMessage, "http://www.coinflips.net/register/"+coinflipKey.Encode()+"?email="+participant.Email),
+			Body:    fmt.Sprintf(confirmMessage, "http://www.coinflips.net/register/" + coinflip.EncodedKey() + "?email=" + participant.Email),
 		}
-		if err := mail.Send(context, msg); err != nil {
-			context.Errorf("Couldn't send email: %v", err)
+		if err := message.send(); err != nil {
+			fmt.Errorf("Couldn't send email: %v", err)
 		}
 	}
 }
 
-func (coinflip *DecoratedCoinflip) getResult() result, error {
-	client := urlfetch.Client(context)
-	response, err := client.Get("http://www.random.org/integers/?num=1&min=0&max=1&col=1&base=10&format=plain&rnd=new")
+func (coinflip *MailingCoinflip) getResult() (string, error) {
+	response, err := http.Get("http://www.random.org/integers/?num=1&min=0&max=1&col=1&base=10&format=plain&rnd=new")
 	if err != nil {
-		return nil, err
+		return "", err
 	} else {
 		defer response.Body.Close()
 		contents, err := ioutil.ReadAll(response.Body)
@@ -75,12 +97,34 @@ func (coinflip *DecoratedCoinflip) getResult() result, error {
 		}
 		strContents := strings.Trim(string(contents), " \n")
 		if strContents == "0" {
-			return coinflip.Head
+			return coinflip.Head, nil
 		} else if strContents == "1" {
-			return coinflip.Tail
+			return coinflip.Tail, nil
 		} else {
-			return "weirdness"
+			return "weirdness", nil
 		}
 	}
-	return "never happens"
+	return "never happens", nil
+}
+
+func (message *Message) send() error {
+	auth := smtp.PlainAuth(
+		"",
+		smtpUser,
+		smtpPassword,
+		smtpServer,
+	)
+	// Connect to the server, authenticate, set the sender and recipient,
+	// and send the email all in one step.
+	err := smtp.SendMail(
+		smtpServer + ":25",
+		auth,
+		"harmaarts@gmail.com",
+		[]string{"harmaarts@gmail.com"},
+		[]byte(message.Subject + "\r\n\r\n" + message.Body),
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }

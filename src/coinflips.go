@@ -5,24 +5,23 @@ import (
 	"net/http"
 	"github.com/hoisie/mustache"
 	"strings"
+	"os"
 	"./coinflips/database"
+	"./coinflips/mail"
 )
 
-type DecoratedCoinflip struct {
-	database.Coinflip
-}
-
-const (
-	senderEmail = "Coinflips.net <harm@mindshards.com>"
-)
-
-func init() {
+func main() {
 	http.HandleFunc("/", home)
 	http.HandleFunc("/show/", show)
 	http.HandleFunc("/create", create)
 	http.HandleFunc("/register/", register)
 	http.HandleFunc("/why", why)
 	http.HandleFunc("/about", about)
+
+	err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func why(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +54,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	coinflipKey := strings.Split(r.URL.Path, "/")[2]
-	coinflip := newDecoratedCoinflip(coinflipKey)
+	coinflip := mail.NewMailingCoinflip(coinflipKey)
 
 	if coinflip.Result.String != "" {
 		http.Redirect(w, r, "/show/" + coinflip.EncodedKey(), 302)
@@ -76,7 +75,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 	if count == 0 {
 		result := coinflip.MailResultToParticipants()
-		coinflip.Result = result
+		coinflip.SetResult(result)
 		coinflip.Update()
 	}
 	http.Redirect(w, r, "/show/" + coinflip.EncodedKey(), 302)
@@ -117,7 +116,8 @@ func create(w http.ResponseWriter, r *http.Request) {
 		coin.CreateParticipant(&participant)
 	}
 
-	coin.mailCreationToParticipants()
+	mailingCoinflip := mail.NewMailingCoinflip(coin.EncodedKey())
+	mailingCoinflip.MailCreationToParticipants()
 
 	http.Redirect(w, r, "/show/" + coin.EncodedKey(), 302)
 }
@@ -172,9 +172,4 @@ func participantsMap(participants []database.Participant, f func(database.Partic
 		mapped = append(mapped, f(participant))
 	}
 	return mapped
-}
-
-func newDecoratedCoinflip(coinflipKey string) (*DecoratedCoinflip) {
-	coin, _ := database.FindCoinflip(coinflipKey)
-	return &DecoratedCoinflip{Coinflip: *coin}
 }

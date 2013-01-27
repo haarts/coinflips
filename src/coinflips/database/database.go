@@ -53,6 +53,10 @@ func (coinflip *Coinflip) EncodedKey() string {
 	return encodeKey(coinflip.Id)
 }
 
+func (coinflip *Coinflip) SetResult(result string) {
+	coinflip.Result = sql.NullString{String: result}
+}
+
 func (coinflip *Coinflip) FindParticipantByEmail(email string) (Participant, error) {
 	db, _ := OpenDatabase()
 	defer db.Close()
