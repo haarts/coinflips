@@ -140,7 +140,7 @@ func (coinflip *Coinflip) Update() error {
 	db, _ := OpenDatabase()
 	defer db.Close()
 	
-	_, err := db.Exec("UPDATE coinflips SET head = $1, tail = $2, result = $3 WHERE id = $4", coinflip.Head, coinflip.Tail, coinflip.Result, coinflip.Id)
+	_, err := db.Exec("UPDATE coinflips SET head = $1, tail = $2, result = $3 WHERE id = $4", coinflip.Head, coinflip.Tail, coinflip.Result.String, coinflip.Id)
 	return err
 }
 
