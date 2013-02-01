@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"fmt"
+	"encoding/json"
 	"../database"
 )
 
@@ -20,9 +21,14 @@ type Message struct {
 	Body string
 }
 
+type settings struct {
+	smtpUser string
+	smtpPassword string
+}
+
 var (
-	smtpUser = "AKIAJNQ3R2RRD6DC7YBA"
-	smtpPassword = "ApI4BKG6pkRiN+LeB2S8o/mz7cucsAO+QFDffbo3LbpH"
+	smtpUser = readSmtpUser()
+	smtpPassword = readSmtpPassword()
 )
 
 const (
@@ -134,4 +140,22 @@ func (message *Message) send() error {
 		return err
 	}
 	return nil
+}
+
+func readSmtpUser() string {
+	return readSettings().smtpUser
+}
+
+func readSmtpPassword() string {
+	return readSettings().smtpPassword
+}
+
+func readSettings() settings {
+	file, err := ioutil.ReadFile("./settings.json")
+	if err != nil {
+		fmt.Errorf("File error: %v\n", err)
+	}
+	var s settings
+	json.Unmarshal(file, &s)
+	return s
 }
