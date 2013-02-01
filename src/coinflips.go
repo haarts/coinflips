@@ -25,17 +25,17 @@ func main() {
 }
 
 func why(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, mustache.RenderFile("./flipco.in/views/layout.html", map[string]string{"body": mustache.RenderFile("./flipco.in/views/why.html", map[string]string{"title": "Why coin tosses? - Coinflips.net"})}))
+	fmt.Fprint(w, mustache.RenderFile("./views/layout.html", map[string]string{"body": mustache.RenderFile("./views/why.html", map[string]string{"title": "Why coin tosses? - Coinflips.net"})}))
 }
 
 func about(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, mustache.RenderFile("./flipco.in/views/layout.html", map[string]string{"body": mustache.RenderFile("./flipco.in/views/about.html", map[string]string{"title": "About coin flips - Coinflips.net"})}))
+	fmt.Fprint(w, mustache.RenderFile("./views/layout.html", map[string]string{"body": mustache.RenderFile("./views/about.html", map[string]string{"title": "About coin flips - Coinflips.net"})}))
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
 	/* static file serve */
 	if len(r.URL.Path) != 1 {
-		http.ServeFile(w, r, "./flipco.in/views"+r.URL.Path)
+		http.ServeFile(w, r, "./views"+r.URL.Path)
 		return
 	}
 
@@ -43,7 +43,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	count := database.TotalNumberOfParticipants()
 
 	/*long, very long line */
-	fmt.Fprint(w, mustache.RenderFile("./flipco.in/views/layout.html", map[string]string{"body": mustache.RenderFile("./flipco.in/views/home.html", map[string]string{"title": "Awesome coin tosses - Coinflips.net", "nr_of_flips": fmt.Sprint(count)})}))
+	fmt.Fprint(w, mustache.RenderFile("./views/layout.html", map[string]string{"body": mustache.RenderFile("./views/home.html", map[string]string{"title": "Awesome coin tosses - Coinflips.net", "nr_of_flips": fmt.Sprint(count)})}))
 }
 
 func register(w http.ResponseWriter, r *http.Request) {
@@ -147,7 +147,7 @@ func show(w http.ResponseWriter, r *http.Request) {
 
 	str_to_str := map[string]string{"count": fmt.Sprint(len(email_list)), "head": coinflip.Head, "tail": coinflip.Tail, "result": result}
 	str_to_slice := map[string][]map[string]string{"participants": email_list}
-	fmt.Fprint(w, mustache.RenderFile("./flipco.in/views/layout.html", map[string]string{"body": mustache.RenderFile("./flipco.in/views/show.html", str_to_str, str_to_slice)}))
+	fmt.Fprint(w, mustache.RenderFile("./views/layout.html", map[string]string{"body": mustache.RenderFile("./views/show.html", str_to_str, str_to_slice)}))
 }
 
 func uniq(friends []string) (uniq_friends []string) {
