@@ -20,9 +20,12 @@ type Message struct {
 	Body string
 }
 
-const (
+var (
 	smtpUser = "AKIAJNQ3R2RRD6DC7YBA"
 	smtpPassword = "ApI4BKG6pkRiN+LeB2S8o/mz7cucsAO+QFDffbo3LbpH"
+)
+
+const (
 	smtpServer = "email-smtp.us-east-1.amazonaws.com"
 	senderEmail = "harm@mindshards.com"
 )
