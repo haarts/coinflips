@@ -24,7 +24,7 @@ const (
 	smtpUser = "AKIAJNQ3R2RRD6DC7YBA"
 	smtpPassword = "ApI4BKG6pkRiN+LeB2S8o/mz7cucsAO+QFDffbo3LbpH"
 	smtpServer = "email-smtp.us-east-1.amazonaws.com"
-	senderEmail = "Coinflips.net <harm@mindshards.com>"
+	senderEmail = "harm@mindshards.com"
 )
 
 const resultMessage = `
@@ -63,7 +63,7 @@ func (coinflip *MailingCoinflip) MailResultToParticipants() string {
 			Body:    fmt.Sprintf(resultMessage, result),
 		}
 		if err := message.send(); err != nil {
-			fmt.Errorf("Couldn't send email: %v", err)
+			fmt.Printf("Couldn't send email: %v\n", err)
 		}
 	}
 	return result
@@ -80,7 +80,7 @@ func (coinflip *MailingCoinflip) MailCreationToParticipants() {
 			Body:    fmt.Sprintf(confirmMessage, "http://www.coinflips.net/register/" + coinflip.EncodedKey() + "?email=" + participant.Email),
 		}
 		if err := message.send(); err != nil {
-			fmt.Errorf("Couldn't send email: %v", err)
+			fmt.Printf("Couldn't send email: %v\n", err)
 		}
 	}
 }
@@ -93,7 +93,7 @@ func (coinflip *MailingCoinflip) getResult() (string, error) {
 		defer response.Body.Close()
 		contents, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			fmt.Printf("%s", err)
+			fmt.Printf("%s\n", err)
 		}
 		strContents := strings.Trim(string(contents), " \n")
 		if strContents == "0" {
@@ -117,11 +117,15 @@ func (message *Message) send() error {
 	// Connect to the server, authenticate, set the sender and recipient,
 	// and send the email all in one step.
 	err := smtp.SendMail(
-		smtpServer + ":25",
+		smtpServer + ":587",
 		auth,
-		"harmaarts@gmail.com",
-		[]string{"harmaarts@gmail.com"},
-		[]byte(message.Subject + "\r\n\r\n" + message.Body),
+		senderEmail,
+		message.To,
+		[]byte("Subject: " + message.Subject + "\r\n" +
+		"From: Coinflips.net <" + senderEmail + ">\r\n" +
+		"Reply-To: " + senderEmail + "\r\n" +
+		"To: " + message.To[0] + "\r\n" +
+		"\r\n" + message.Body),
 	)
 	if err != nil {
 		return err
