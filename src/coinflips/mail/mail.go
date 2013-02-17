@@ -49,7 +49,7 @@ Thanks for using Coinflips.net!
 `
 
 const confirmMessage = `
-Someone created a coin toss with you.
+Someone created a coin toss with you. Let's find out what's it going to be.
 Please confirm your email address by clicking on the link below:
 
 %s
