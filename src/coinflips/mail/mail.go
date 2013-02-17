@@ -22,8 +22,8 @@ type Message struct {
 }
 
 type settings struct {
-	smtpUser string
-	smtpPassword string
+	SmtpUser string
+	SmtpPassword string
 }
 
 var (
@@ -143,11 +143,11 @@ func (message *Message) send() error {
 }
 
 func readSmtpUser() string {
-	return readSettings().smtpUser
+	return readSettings().SmtpUser
 }
 
 func readSmtpPassword() string {
-	return readSettings().smtpPassword
+	return readSettings().SmtpPassword
 }
 
 func readSettings() settings {
@@ -156,6 +156,9 @@ func readSettings() settings {
 		fmt.Errorf("File error: %v\n", err)
 	}
 	var s settings
-	json.Unmarshal(file, &s)
+	err = json.Unmarshal(file, &s)
+	if err != nil {
+	  fmt.Errorf("File failed to decode: %v\n", err)
+	}
 	return s
 }
