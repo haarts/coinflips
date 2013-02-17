@@ -44,7 +44,7 @@ The result of your coin flip is:
 
 Remember this results is based on absolute randomness.
 
-Thanks for using Coinflips.net!
+We are glad we could help you!
 
 `
 
