@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"github.com/hoisie/mustache"
 	"strings"
+	"regexp"
 	"os"
 	"./coinflips/database"
 	"./coinflips/mail"
@@ -89,8 +90,8 @@ func create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.ParseForm()
-	tail := r.Form["tail"][0]
-	head := r.Form["head"][0]
+	tail := stripUrls(r.Form["tail"][0])
+	head := stripUrls(r.Form["head"][0])
 	friends := r.Form["friends[]"]
 
 	uniq_friends := uniq(friends)
@@ -172,4 +173,9 @@ func participantsMap(participants []database.Participant, f func(database.Partic
 		mapped = append(mapped, f(participant))
 	}
 	return mapped
+}
+
+func stripUrls(input string) (output string) {
+	regex, _ := regexp.Compile(`([\da-z\.-]+)\.([a-z\.]{2,6})`)
+	return string(regex.ReplaceAll([]byte(input), []byte("")))
 }
