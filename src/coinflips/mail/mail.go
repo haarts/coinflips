@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"fmt"
-	"encoding/json"
 	"../database"
+	"../settings"
 )
 
 type MailingCoinflip struct {
@@ -21,14 +21,9 @@ type Message struct {
 	Body string
 }
 
-type settings struct {
-	SmtpUser string
-	SmtpPassword string
-}
-
 var (
-	smtpUser = readSmtpUser()
-	smtpPassword = readSmtpPassword()
+	smtpUser = settings.ReadSmtpUser()
+	smtpPassword = settings.ReadSmtpPassword()
 )
 
 const (
@@ -140,25 +135,4 @@ func (message *Message) send() error {
 		return err
 	}
 	return nil
-}
-
-func readSmtpUser() string {
-	return readSettings().SmtpUser
-}
-
-func readSmtpPassword() string {
-	return readSettings().SmtpPassword
-}
-
-func readSettings() settings {
-	file, err := ioutil.ReadFile("./settings.json")
-	if err != nil {
-		fmt.Errorf("File error: %v\n", err)
-	}
-	var s settings
-	err = json.Unmarshal(file, &s)
-	if err != nil {
-	  fmt.Errorf("File failed to decode: %v\n", err)
-	}
-	return s
 }

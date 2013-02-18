@@ -6,12 +6,14 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+	"../settings"
 )
 
 // TODO: move to settings file
 var (
 	databaseName = "coinflips"
 	databaseUser = "harm"
+	salt = settings.ReadSalt()
 )
 
 type Coinflip struct {
@@ -38,14 +40,14 @@ func OpenDatabase() (*sql.DB, error) {
 
 func decodeKey(key string) int {
 	h := hashids.New()
-	h.Salt = "dit is zout, heel zout" //TODO: put this in a conf file
+	h.Salt = salt
 	return h.Decrypt(key)[0]
 }
 
 func encodeKey(key int) string {
 	h := hashids.New()
 	h.MinLength = 10
-	h.Salt = "dit is zout, heel zout" //TODO: put this in a conf file
+	h.Salt = salt
 	return h.Encrypt([]int{key})
 }
 
