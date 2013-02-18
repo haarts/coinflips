@@ -7,8 +7,8 @@ import (
 	"strings"
 	"regexp"
 	"os"
-	"./coinflips/database"
-	"./coinflips/mail"
+	"coinflips/database"
+	"coinflips/mail"
 )
 
 func main() {

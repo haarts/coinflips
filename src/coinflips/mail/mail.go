@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"fmt"
-	"../database"
-	"../settings"
+	"coinflips/database"
+	"coinflips/settings"
 )
 
 type MailingCoinflip struct {

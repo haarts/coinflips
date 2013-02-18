@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-	"../settings"
+	"coinflips/settings"
 )
 
 // TODO: move to settings file
