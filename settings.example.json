@@ -1,0 +1,5 @@
+{
+  "SmtpUser": "some_user",
+  "SmtpPassword": "some_password",
+  "Salt": "some random string"
+}
